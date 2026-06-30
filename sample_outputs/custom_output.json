@@ -1,0 +1,15 @@
+{
+  "full_name": "Rikesh Yadav",
+  "primary_email": "rikesh.yadav@example.com",
+  "phone": "+919876543210",
+  "skills": [
+    "Deep Q-Networks",
+    "Machine Learning",
+    "MongoDB",
+    "Node.js",
+    "Python",
+    "React",
+    "Reinforcement Learning"
+  ],
+  "overall_confidence": 0.86
+}

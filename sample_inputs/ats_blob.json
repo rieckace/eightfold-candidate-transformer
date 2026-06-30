@@ -1,0 +1,27 @@
+{
+  "candidate_record": {
+    "fullName": "Rikesh Yadav",
+    "contact": {
+      "primaryEmail": "rikesh.yadav@example.com",
+      "mobile": "+886-912-345-678"
+    },
+    "currentRole": {
+      "org": "Yuan Ze University - INEC Lab",
+      "position": "Research Intern"
+    },
+    "addr": {
+      "town": "Taoyuan",
+      "state_or_region": "Taoyuan City",
+      "nation": "Taiwan"
+    },
+    "skill_tags": ["Python", "ML", "RL", "DQN", "React", "Node"],
+    "edu_history": [
+      {
+        "school": "Sri Eshwar College of Engineering",
+        "qualification": "B.E. Computer Science and Engineering",
+        "major": "Computer Science",
+        "gradYear": 2027
+      }
+    ]
+  }
+}

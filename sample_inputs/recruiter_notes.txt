@@ -1,0 +1,14 @@
+Candidate: Rikesh Yadav
+Spoke with him on call - currently based out of Taoyuan, Taiwan, originally from Nepal.
+Working as a Research Intern at Yuan Ze University under Dr. Ihsan Ullah since June 2026.
+Strong in Python, RL/DQN, and has decent full-stack background (React, Node.js, MongoDB).
+He mentioned around 2 years of overall coding/project experience (including academic + internships).
+Contact number he gave verbally: 9876543210 (said this is his primary number, WhatsApp enabled).
+Alternate / old email seen in resume: rikesh.old@example.com - he confirmed this is no longer active,
+preferred email is rikesh.yadav@example.com.
+
+Education mentioned: B.E/B.Tech Computer Science and Engineering, Sri Eshwar College of Engineering,
+expected graduation 2027.
+
+Note: candidate seemed strong on research aptitude, slightly less confident articulating production
+deployment experience. Flagged as a good fit for research-style engineering roles.
