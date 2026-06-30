@@ -17,9 +17,10 @@ class Provenance:
     field: str          # canonical field path, e.g. "phones[0]" or "full_name"
     source: str         # source identifier, e.g. "recruiter_csv", "github_api", "recruiter_notes"
     method: str         # how the value was derived, e.g. "direct", "regex_extracted", "merged_union", "trust_weighted"
+    reason: str = ""    # human-readable explanation of why this value/source won (merge explainability)
 
     def to_dict(self):
-        return {"field": self.field, "source": self.source, "method": self.method}
+        return {"field": self.field, "source": self.source, "method": self.method, "reason": self.reason}
 
 
 @dataclass
@@ -104,8 +105,8 @@ class CanonicalRecord:
     provenance: list = field(default_factory=list)     # list[Provenance]
     overall_confidence: float = 0.0
 
-    def add_provenance(self, field_name: str, source: str, method: str):
-        self.provenance.append(Provenance(field_name, source, method))
+    def add_provenance(self, field_name: str, source: str, method: str, reason: str = ""):
+        self.provenance.append(Provenance(field_name, source, method, reason))
 
     def to_full_dict(self):
         """Full-fidelity dict matching the default output schema (no projection)."""

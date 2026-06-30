@@ -167,6 +167,48 @@ def test_invalid_config_rejected():
         pass
 
 
+def test_confidence_formula_is_deterministic():
+    """
+    CONSTRAINT: the confidence formula itself (trust + agreement_bonus +
+    validation_bonus - conflict_penalty) must be a pure function -- same
+    inputs always produce the same score.
+    """
+    from merge import compute_confidence
+    c1 = compute_confidence(0.8, agreeing_sources_count=2, validated=True, had_conflict=False)
+    c2 = compute_confidence(0.8, agreeing_sources_count=2, validated=True, had_conflict=False)
+    assert c1 == c2
+    # Sanity-check the formula's direction of effect: agreement should raise
+    # confidence, conflict should lower it, relative to the same base trust.
+    base = compute_confidence(0.8, agreeing_sources_count=0, validated=False, had_conflict=False)
+    with_agreement = compute_confidence(0.8, agreeing_sources_count=2, validated=False, had_conflict=False)
+    with_conflict = compute_confidence(0.8, agreeing_sources_count=0, validated=False, had_conflict=True)
+    assert with_agreement > base
+    assert with_conflict < base
+    assert compute_confidence(0.99, agreeing_sources_count=10, validated=True, had_conflict=False) <= 1.0
+
+
+def test_provenance_includes_explainable_reason():
+    """
+    EDGE CASE: every populated field's provenance entry must include a
+    non-empty, human-readable 'reason' string -- this is the merge
+    explainability requirement, not just a source tag.
+    """
+    inputs = [
+        os.path.join(SAMPLE_DIR, "recruiter_export.csv"),
+        os.path.join(SAMPLE_DIR, "ats_blob.json"),
+        os.path.join(SAMPLE_DIR, "recruiter_notes.txt"),
+    ]
+    records, _ = run_pipeline(inputs)
+    rec = records[0]
+    assert len(rec.provenance) > 0
+    for p in rec.provenance:
+        assert p.reason and len(p.reason) > 10, f"Provenance entry for '{p.field}' has no meaningful reason"
+    # The full_name field specifically should mention agreement, since 4
+    # sources all agree on the same name in our sample data.
+    name_prov = next(p for p in rec.provenance if p.field == "full_name")
+    assert "agreed" in name_prov.reason.lower() or "highest-trusted" in name_prov.reason.lower()
+
+
 def _run_all():
     tests = [v for k, v in list(globals().items()) if k.startswith("test_") and callable(v)]
     passed, failed = 0, 0

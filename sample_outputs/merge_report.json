@@ -1,0 +1,28 @@
+{
+  "candidates_processed": 1,
+  "input_sources_seen": [
+    "ats_json",
+    "recruiter_csv",
+    "recruiter_notes"
+  ],
+  "sources_skipped": [],
+  "total_records_extracted": 4,
+  "merged_fields_total": 17,
+  "conflicts_resolved_total": 1,
+  "average_confidence": 0.7647,
+  "runtime_seconds": 0.0018,
+  "candidates": [
+    {
+      "candidate_id": "cand_0001",
+      "full_name": "Rikesh Yadav",
+      "merged_fields": 17,
+      "conflicts_resolved": 1,
+      "sources_contributing": [
+        "ats_json",
+        "recruiter_csv",
+        "recruiter_notes"
+      ],
+      "overall_confidence": 0.7647
+    }
+  ]
+}

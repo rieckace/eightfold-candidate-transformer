@@ -26,7 +26,7 @@
   "skills": [
     {
       "name": "Deep Q-Networks",
-      "confidence": 0.95,
+      "confidence": 0.85,
       "sources": [
         "ats_json",
         "recruiter_notes"
@@ -34,21 +34,21 @@
     },
     {
       "name": "Machine Learning",
-      "confidence": 0.8,
+      "confidence": 0.82,
       "sources": [
         "ats_json"
       ]
     },
     {
       "name": "MongoDB",
-      "confidence": 0.5,
+      "confidence": 0.52,
       "sources": [
         "recruiter_notes"
       ]
     },
     {
       "name": "Node.js",
-      "confidence": 0.95,
+      "confidence": 0.85,
       "sources": [
         "ats_json",
         "recruiter_notes"
@@ -56,7 +56,7 @@
     },
     {
       "name": "Python",
-      "confidence": 0.95,
+      "confidence": 0.85,
       "sources": [
         "ats_json",
         "recruiter_notes"
@@ -64,7 +64,7 @@
     },
     {
       "name": "React",
-      "confidence": 0.95,
+      "confidence": 0.85,
       "sources": [
         "ats_json",
         "recruiter_notes"
@@ -72,7 +72,7 @@
     },
     {
       "name": "Reinforcement Learning",
-      "confidence": 0.95,
+      "confidence": 0.85,
       "sources": [
         "ats_json",
         "recruiter_notes"
@@ -96,62 +96,109 @@
       "end_year": 2027
     }
   ],
-  "overall_confidence": 0.86,
+  "overall_confidence": 0.76,
   "provenance": [
     {
       "field": "full_name",
       "source": "ats_json",
-      "method": "trust_weighted"
+      "method": "trust_weighted",
+      "reason": "'ats_json' is the highest-trusted source providing full_name (trust=0.80). 3 other source(s) independently agreed on the same value."
     },
     {
       "field": "emails[0]",
       "source": "recruiter_csv",
-      "method": "merged_union"
+      "method": "merged_union",
+      "reason": "Surfaced from 'recruiter_csv'; kept alongside other distinct emails rather than overwritten, since each represents a real value a source provided."
     },
     {
       "field": "emails[1]",
       "source": "recruiter_csv",
-      "method": "merged_union"
+      "method": "merged_union",
+      "reason": "Surfaced from 'recruiter_csv'; kept alongside other distinct emails rather than overwritten, since each represents a real value a source provided."
     },
     {
       "field": "emails[2]",
       "source": "recruiter_notes",
-      "method": "merged_union"
+      "method": "merged_union",
+      "reason": "Surfaced from 'recruiter_notes'; kept alongside other distinct emails rather than overwritten, since each represents a real value a source provided."
     },
     {
       "field": "phones[0]",
       "source": "recruiter_csv",
-      "method": "merged_union+normalized"
+      "method": "merged_union+normalized",
+      "reason": "Normalized to E.164 from 'recruiter_csv'. Confirmed by 2 other source(s) after normalization."
     },
     {
       "field": "phones[1]",
       "source": "ats_json",
-      "method": "merged_union+normalized"
+      "method": "merged_union+normalized",
+      "reason": "Normalized to E.164 from 'ats_json'."
     },
     {
       "field": "location",
       "source": "ats_json",
-      "method": "trust_weighted"
+      "method": "trust_weighted",
+      "reason": "'ats_json' is the highest-trusted source with location data (trust=0.80). 1 other source(s) had differing/partial location data, deprioritized in favor of the higher-trust source."
     },
     {
       "field": "years_experience",
       "source": "recruiter_notes",
-      "method": "regex_extracted"
+      "method": "regex_extracted",
+      "reason": "Extracted via pattern match from free text in 'recruiter_notes'; lower validation confidence since this is inferred, not a structured field."
     },
     {
-      "field": "skills",
-      "source": "ats_json+recruiter_notes",
-      "method": "merged_union+canonicalized"
+      "field": "skills[Deep Q-Networks]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json, recruiter_notes. Confidence boosted by agreement across 2 independent sources."
+    },
+    {
+      "field": "skills[Machine Learning]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json."
+    },
+    {
+      "field": "skills[MongoDB]",
+      "source": "recruiter_notes",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: recruiter_notes."
+    },
+    {
+      "field": "skills[Node.js]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json, recruiter_notes. Confidence boosted by agreement across 2 independent sources."
+    },
+    {
+      "field": "skills[Python]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json, recruiter_notes. Confidence boosted by agreement across 2 independent sources."
+    },
+    {
+      "field": "skills[React]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json, recruiter_notes. Confidence boosted by agreement across 2 independent sources."
+    },
+    {
+      "field": "skills[Reinforcement Learning]",
+      "source": "ats_json",
+      "method": "merged_union+canonicalized",
+      "reason": "Canonicalized skill seen in: ats_json, recruiter_notes. Confidence boosted by agreement across 2 independent sources."
     },
     {
       "field": "experience[0]",
       "source": "ats_json",
-      "method": "trust_weighted"
+      "method": "trust_weighted",
+      "reason": "Company/title pairing taken together from 'ats_json' (highest-trust source) to avoid mixing mismatched fields across sources."
     },
     {
       "field": "education[0]",
       "source": "ats_json",
-      "method": "trust_weighted"
+      "method": "trust_weighted",
+      "reason": "'ats_json' is the highest-trusted source mentioning this institution. Mentioned (with possibly differently-worded degree text) by 1 other source(s) too; institution used as the dedupe key since degree phrasing varies."
     }
   ]
 }

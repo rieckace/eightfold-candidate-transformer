@@ -17,8 +17,41 @@ candidate. It detects each source's type, extracts whatever it can from
 each (without crashing on garbage), normalizes formats (phones → E.164,
 dates → `YYYY-MM`, skills → canonical names), merges everything into one
 record (resolving conflicts by source trust + cross-source agreement),
-scores confidence per field, and finally reshapes the output into
-whatever schema you ask for via a runtime config — no code changes needed.
+scores confidence per field via a deterministic formula, and finally
+reshapes the output into whatever schema you ask for via a runtime
+config — no code changes needed.
+
+```
+  Recruiter CSV   ATS JSON   Recruiter Notes   GitHub Profile
+        │             │             │                │
+        └─────────────┴──────┬──────┴────────────────┘
+                              ▼
+                      Source Detection
+                              ▼
+                         Extraction
+                              ▼
+                    Common Intermediate Shape
+                              ▼
+                       Normalization
+                    (phone / date / skill)
+                              ▼
+                        Merge Engine
+                (match-key clustering, trust-weighted
+                   conflict resolution, dedup)
+                              ▼
+                  Deterministic Confidence
+              (trust + agreement + validation − conflict)
+                              ▼
+                     Canonical Record
+                   (full-fidelity, internal)
+                              ▼
+                    Projection (runtime config)
+              (subset / rename / normalize / on_missing)
+                              ▼
+                         Validation
+                              ▼
+                        Output JSON
+```
 
 ---
 
@@ -53,7 +86,8 @@ eightfold-candidate-transformer/
 │   ├── models.py         # CanonicalRecord and related dataclasses (internal schema)
 │   ├── config.py         # validates runtime output config
 │   ├── projector.py       # Stage 5: reshapes canonical record per config
-│   └── validate.py       # Stage 6: validates projected output against config
+│   ├── validate.py       # Stage 6: validates projected output against config
+│   └── reporting.py      # structured pipeline logging + merge_report.json builder
 ├── sample_inputs/        # mock candidate data across 3 source types + edge cases
 ├── sample_outputs/        # pre-generated outputs (default schema + custom config)
 ├── configs/               # example runtime config files
@@ -115,19 +149,37 @@ python3 main.py --inputs ../sample_inputs/recruiter_export.csv \
                  --out ../sample_outputs/my_output.json
 ```
 
-### 4.4 Verbose mode (see what detect/extract did for each source)
+### 4.4 Verbose mode — staged pipeline log
 
 ```bash
 python3 main.py --inputs ../sample_inputs/recruiter_export.csv \
+                 ../sample_inputs/ats_blob.json \
+                 ../sample_inputs/recruiter_notes.txt \
                  ../sample_inputs/garbage_source.json \
                  --verbose
 ```
 
-This prints a run log showing exactly what type each input was detected
-as, how many records were extracted, and whether each source contributed
-data or was gracefully skipped.
+Prints a structured, staged log (Detect/Extract → Merge → Projection →
+Validation) showing exactly what type each input was detected as, how
+many records were extracted, how many candidate clusters formed, how
+many conflicts were resolved, and the overall confidence — not raw
+prints, a readable run summary.
 
-### 4.5 Including the GitHub profile source (bonus, needs network)
+### 4.5 Merge report — machine-readable run summary
+
+```bash
+python3 main.py --inputs ../sample_inputs/recruiter_export.csv \
+                 ../sample_inputs/ats_blob.json \
+                 ../sample_inputs/recruiter_notes.txt \
+                 --report ../sample_outputs/merge_report.json
+```
+
+Writes a `merge_report.json` with candidates processed, fields merged,
+conflicts resolved, sources contributing, and average confidence — a
+reviewer can understand what the pipeline did without reading the full
+candidate JSON.
+
+### 4.6 Including the GitHub profile source (bonus, needs network)
 
 ```bash
 python3 main.py --inputs ../sample_inputs/recruiter_export.csv \
@@ -139,7 +191,7 @@ access (or hit a rate limit), the pipeline does **not** crash — the
 GitHub source is silently skipped and the rest of the merge proceeds
 normally. This is intentional: see Constraint #2 ("Robust") in the design doc.
 
-### 4.6 Running the tests
+### 4.7 Running the tests
 
 ```bash
 # from the repo root
@@ -149,10 +201,12 @@ python3 tests/test_pipeline.py
 python3 -m pytest tests/test_pipeline.py -v
 ```
 
-10 tests, all passing, covering: normalization correctness, multi-source
+12 tests, all passing, covering: normalization correctness, multi-source
 merge + conflict resolution, robustness against garbage/missing/empty
-sources, determinism, and config-driven projection (including the exact
-example config from the assignment and the `on_missing: error` path).
+sources, determinism, config-driven projection (including the exact
+example config from the assignment and the `on_missing: error` path),
+the deterministic confidence formula, and provenance explainability
+(every populated field carries a non-empty, human-readable `reason`).
 
 ---
 
@@ -173,26 +227,99 @@ silently skipped.
 
 ---
 
-## 6. Design decisions worth knowing (full reasoning in the design PDF)
+## 6. Confidence formula & provenance
 
-- **Match key for merging:** shared normalized email OR phone. Name alone
-  is deliberately *not* used as a match key (too many false-positive risks
-  with common names) — documented trade-off under time pressure.
-- **Source trust weights** (used to resolve scalar-field conflicts):
-  `resume: 0.9 > ats_json: 0.8 > recruiter_csv: 0.75 > linkedin: 0.7 > github: 0.6 > recruiter_notes: 0.5`
-  Configurable via `merge.DEFAULT_TRUST_WEIGHTS`.
-- **List fields** (emails, phones, skills, education) are unioned and
-  deduped, never overwritten — we never silently drop a value a real
-  source gave us.
-- **Confidence** = source trust weight, boosted +0.15 if 2+ independent
-  sources agree on the same value (capped at 1.0).
-- **No external dependencies.** Phone normalization is a self-contained
-  heuristic (not the full `phonenumbers` library) so the tool runs
-  anywhere with zero install friction — a deliberate scope trade-off
-  given the time constraint.
-- **LinkedIn / resume (PDF/DOCX) extractors are not implemented** this
-  round, but the extractor interface (`extract(source_type, path) -> list[dict]`)
-  is built so adding either is a drop-in addition, not a redesign.
+Every populated field's confidence is computed by one deterministic,
+auditable formula (in `merge.py`):
+
+```
+confidence = min(1.0, source_trust + agreement_bonus + validation_bonus - conflict_penalty)
+
+  source_trust       = trust weight of the winning source (0-1; see table below)
+  agreement_bonus     = +0.03 per OTHER independent source agreeing on the same value
+  validation_bonus    = +0.02 if the value passed format validation
+  conflict_penalty    = -0.10 if at least one other source disagreed
+```
+
+Source trust weights: `resume 0.9 > ats_json 0.8 > recruiter_csv 0.75 >
+linkedin 0.7 > github 0.6 > recruiter_notes 0.5` (configurable via
+`merge.DEFAULT_TRUST_WEIGHTS`).
+
+Every populated field also carries a full `Provenance` entry — not just
+*which* source won, but *why*:
+
+```json
+{
+  "field": "phones[0]",
+  "source": "recruiter_csv",
+  "method": "merged_union+normalized",
+  "reason": "Normalized to E.164 from 'recruiter_csv'. Confirmed by 2 other source(s) after normalization."
+}
+```
+
+`overall_confidence` is the average of every populated field's
+confidence — so it reflects the actual evidence behind the record, not
+an arbitrary single number.
+
+---
+
+## 7. Design Decisions
+
+**Why a canonical model separate from the output?** Sources disagree, use
+different field names, and arrive in different shapes. Building one
+internal, full-fidelity `CanonicalRecord` first — and only shaping it into
+the requested output at the very end — means the merge logic never has to
+think about what the caller asked for, and the projection logic never has
+to think about where data came from. Each stays simple and testable on
+its own.
+
+**Why a projection layer instead of just filtering the canonical dict?**
+The assignment's runtime config does more than filtering — it renames
+fields, applies per-field normalization, and has three different
+missing-value behaviors. Centralizing that in one `project()` function
+means every output shape (default schema, a recruiter-specific view, a
+minimal API response) is generated by the same code path, so a bug fixed
+once is fixed everywhere.
+
+**Why a deterministic confidence formula instead of hardcoded scores?**
+A reviewer (or a future engineer) should be able to recompute any
+confidence value by hand from the formula and the inputs. Every number
+traces back to a specific, inspectable fact about the merge (which
+source won, how many others agreed, whether the value passed format
+validation, whether anything disagreed) — see Section 6.
+
+**Why provenance with a `reason` string, not just a source tag?** Knowing
+*that* a value came from `ats_json` is a fraction of the story. Knowing
+*why* `ats_json` was chosen over `recruiter_notes` — and what alternative
+values were discarded — is what actually makes the output trustworthy
+and debuggable. Every populated field carries this.
+
+**Why a CLI, not a UI?** The assignment explicitly deprioritizes the
+input/output surface relative to engine correctness. A CLI is the
+fastest way to expose the full pipeline (including the run log, merge
+report, and config flexibility) without spending time on presentation
+that doesn't affect correctness.
+
+**Why a deterministic merge (no fuzzy matching / ML)?** Matching on
+exact normalized email/phone, and resolving conflicts by a fixed trust
+table, means the same inputs always produce the same output — a hard
+constraint in the brief — and every decision can be explained in one
+sentence. Fuzzy name-matching or ML-based merging would add real value
+at production scale, but also add nondeterminism and unexplainable edge
+cases that aren't worth the risk under this assignment's time and
+correctness priorities.
+
+**Why LinkedIn / resume (PDF/DOCX) extractors aren't implemented this
+round.** The extractor interface (`extract(source_type, path) ->
+list[dict]`) is built so adding either is a drop-in addition, not a
+redesign — but writing a robust PDF/DOCX parser, or handling LinkedIn's
+lack of a public API, was judged lower-value than hardening the
+merge/confidence/projection core under the time constraint.
+
+**Why no external dependencies (e.g. `phonenumbers`).** Phone
+normalization is a self-contained heuristic so the tool runs anywhere
+with zero install friction — a deliberate scope trade-off, trading
+perfect international coverage for grading reliability.
 
 For the full design rationale — pipeline breakdown, merge policy, 3-5 edge
 cases, and what was deliberately descoped — see the one-page design
@@ -200,7 +327,7 @@ document submitted alongside this repo.
 
 ---
 
-## 7. Assumptions & what's out of scope
+## 8. Assumptions & what's out of scope
 
 - Sample inputs are mocked (the assignment provided no sample data) —
   built deliberately messy to exercise merge conflicts and robustness.
