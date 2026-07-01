@@ -1,0 +1,2 @@
+# This project uses only the Python standard library at runtime.
+# Keep this file as the canonical place for future third-party dependencies.
