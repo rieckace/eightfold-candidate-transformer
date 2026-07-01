@@ -9,6 +9,7 @@ no ML classification needed for this scope.
 
 import json
 import os
+import re
 
 
 SOURCE_TYPES = {
@@ -37,6 +38,11 @@ def detect_source_type(path_or_url: str) -> str:
         if "linkedin.com" in s:
             return "linkedin_profile"  # not implemented this round; detected for future extensibility
         return "unknown"
+
+    # Accept a bare GitHub username as a convenience input.
+    # Keep the heuristic narrow so ordinary free text does not get misclassified.
+    if re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?", s):
+        return "github_profile"
 
     if not os.path.isfile(s):
         return "unknown"
