@@ -306,12 +306,19 @@ def merge_records(all_records, trust_weights=None):
             rec.add_provenance(f"skills[{name}]", top_source, "merged_union+canonicalized", reason=reason)
 
         # --- experience ---
-        exp_candidates = [(_trust(r["source"], weights), r["source"], r.get("company"), r.get("title"))
+        exp_candidates = [(
+            _trust(r["source"], weights),
+            r["source"],
+            r.get("company"),
+            r.get("title"),
+            r.get("start_date"),
+            r.get("summary"),
+        )
                            for r in cluster if r.get("company") or r.get("title")]
         if exp_candidates:
             exp_candidates.sort(key=lambda c: c[0], reverse=True)
-            _, exp_src, company, title = exp_candidates[0]
-            rec.experience.append(Experience(company=company, title=title, start=None, end="present", summary=None))
+            _, exp_src, company, title, start_date, summary = exp_candidates[0]
+            rec.experience.append(Experience(company=company, title=title, start=start_date, end="present", summary=summary))
             other_exp = len(exp_candidates) - 1
             conf = compute_confidence(_trust(exp_src, weights), agreeing_sources_count=0, validated=True, had_conflict=other_exp > 0)
             field_confidences.append(conf)

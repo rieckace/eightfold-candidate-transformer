@@ -74,6 +74,14 @@ def extract_recruiter_csv(path, source_id="recruiter_csv"):
                     rec["phones"] = [phone]
                 rec["company"] = (row.get("current_company") or "").strip() or None
                 rec["title"] = (row.get("title") or "").strip() or None
+                rec["headline"] = (row.get("headline") or "").strip() or None
+                if row.get("linkedin") or row.get("github") or row.get("portfolio"):
+                    rec["links"] = {
+                        "linkedin": (row.get("linkedin") or "").strip() or None,
+                        "github": (row.get("github") or "").strip() or None,
+                        "portfolio": (row.get("portfolio") or "").strip() or None,
+                        "other": [],
+                    }
                 records.append(rec)
     except (OSError, csv.Error, UnicodeDecodeError):
         return []  # missing/garbage source -> empty list, never crash
@@ -138,6 +146,7 @@ def extract_ats_json(path, source_id="ats_json"):
     if isinstance(role, dict):
         rec["company"] = role.get("org") or None
         rec["title"] = role.get("position") or None
+        rec["years_experience_hint"] = role.get("yearsExperience") or rec["years_experience_hint"]
 
     addr = cand.get("addr") or {}
     if isinstance(addr, dict):
@@ -162,6 +171,16 @@ def extract_ats_json(path, source_id="ats_json"):
                 "field": edu.get("major"),
                 "end_year": edu.get("gradYear"),
             })
+
+        # Optional direct profile fields for richer sample inputs.
+        rec["headline"] = cand.get("headline") or None
+        if isinstance(role, dict):
+            start = role.get("start") or role.get("startDate")
+            if start:
+                rec["start_date"] = start
+            summary = role.get("summary")
+            if summary:
+                rec["summary"] = summary
 
     return [rec]
 
